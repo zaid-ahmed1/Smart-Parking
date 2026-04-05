@@ -1,120 +1,203 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import './App.css'
 
+const API_BASE = ''
+
+type User = {
+  email: string
+  dob: string
+  phone: string
+  createdAt: string
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [dob, setDob] = useState('')
+  const [phone, setPhone] = useState('')
+  const [token, setToken] = useState(() => localStorage.getItem('smart_parking_token') || '')
+  const [user, setUser] = useState<User | null>(null)
+  const [status, setStatus] = useState('')
+
+  useEffect(() => {
+    if (!token) {
+      setUser(null)
+      return
+    }
+
+    setStatus('Restoring your session...')
+    fetch(`${API_BASE}/api/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error((await res.json()).message || 'Session expired')
+        }
+        return res.json()
+      })
+      .then((data) => {
+        setUser(data.user)
+        setStatus('')
+      })
+      .catch(() => {
+        localStorage.removeItem('smart_parking_token')
+        setToken('')
+        setUser(null)
+        setStatus('Please sign in to continue.')
+      })
+  }, [token])
+
+  const saveToken = (newToken: string) => {
+    localStorage.setItem('smart_parking_token', newToken)
+    setToken(newToken)
+  }
+
+  const resetForm = () => {
+    setEmail('')
+    setPassword('')
+    setDob('')
+    setPhone('')
+  }
+
+  const handleApiError = async (res: Response) => {
+    const data = await res.json().catch(() => null)
+    throw new Error(data?.message || res.statusText || 'Unknown error')
+  }
+
+  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setStatus('Creating account...')
+    try {
+      const res = await fetch(`${API_BASE}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, dob, phone }),
+      })
+      if (!res.ok) await handleApiError(res)
+      const data = await res.json()
+      saveToken(data.token)
+      setUser(data.user)
+      setStatus('Welcome! Your account is ready.')
+      resetForm()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Unable to sign up')
+    }
+  }
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setStatus('Signing in...')
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!res.ok) await handleApiError(res)
+      const data = await res.json()
+      saveToken(data.token)
+      setUser(data.user)
+      setStatus('Signed in successfully.')
+      resetForm()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Unable to sign in')
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="auth-page">
+      <section className="auth-card">
+        <div className="auth-brand">
+          <h1>Smart Parking</h1>
+          <p>Persistent login across devices with secure signup and login.</p>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+
+        {status && <div className="status-message">{status}</div>}
+
+        {user ? (
+          <div className="profile-card">
+            <h2>Account Overview</h2>
+            <div className="profile-item">
+              <span>Email</span>
+              <strong>{user.email}</strong>
+            </div>
+            <div className="profile-item">
+              <span>Date of Birth</span>
+              <strong>{user.dob}</strong>
+            </div>
+            <div className="profile-item">
+              <span>Phone</span>
+              <strong>{user.phone}</strong>
+            </div>
+            <div className="profile-item">
+              <span>Account created</span>
+              <strong>{new Date(user.createdAt).toLocaleString()}</strong>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="auth-switch">
+              <button
+                className={authMode === 'login' ? 'active' : ''}
+                type="button"
+                onClick={() => setAuthMode('login')}
+              >
+                Sign In
+              </button>
+              <button
+                className={authMode === 'signup' ? 'active' : ''}
+                type="button"
+                onClick={() => setAuthMode('signup')}
+              >
+                Create Account
+              </button>
+            </div>
+
+            {authMode === 'login' ? (
+              <form className="auth-form" onSubmit={handleLogin}>
+                <label>
+                  Email address
+                  <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+                </label>
+                <label>
+                  Password
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+                </label>
+                <button className="primary-button" type="submit">
+                  Sign In
+                </button>
+              </form>
+            ) : (
+              <form className="auth-form" onSubmit={handleSignup}>
+                <label>
+                  Email address
+                  <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+                </label>
+                <label>
+                  Password
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={8} required />
+                </label>
+                <label>
+                  Date of birth
+                  <input value={dob} onChange={(event) => setDob(event.target.value)} type="date" required />
+                </label>
+                <label>
+                  Phone number
+                  <input value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" required />
+                </label>
+                <button className="primary-button" type="submit">
+                  Create Account
+                </button>
+              </form>
+            )}
+          </div>
+        )}
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 
