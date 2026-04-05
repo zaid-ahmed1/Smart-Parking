@@ -31,17 +31,7 @@ const statusStyles: Record<SpotStatus, string> = {
   ev: 'bg-sky-100 border-sky-400 text-sky-900',
 }
 
-const statusBadgeStyles: Record<SpotStatus, string> = {
-  free: 'bg-emerald-500 text-white ring-emerald-600',
-  taken: 'bg-rose-500 text-white ring-rose-600',
-  ev: 'bg-sky-500 text-white ring-sky-600',
-}
 
-const statusLabel: Record<SpotStatus, string> = {
-  free: 'Free',
-  taken: 'Taken',
-  ev: 'EV',
-}
 
 function buildSummary(spots: Spot[]) {
   return {
@@ -206,24 +196,16 @@ function LotMap() {
               {lotDetails.spots.map((spot) => (
                 <div
                   key={spot.id}
-                  className={`relative min-h-[96px] overflow-hidden rounded-[28px] border p-3 text-left text-xs font-semibold ${statusStyles[spot.status]}`}
+                  className={`min-h-[96px] overflow-hidden rounded-[28px] border p-3 text-left text-xs font-semibold ${statusStyles[spot.status]}`}
                 >
-                  {spot.accessible ? (
-                    <span className="absolute left-3 top-3 text-[0.65rem]">♿</span>
-                  ) : null}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-col items-center gap-2">
                     <span className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-950">
                       {spot.label}
                     </span>
-                    <span className={`rounded-full px-3 py-1 text-[0.8rem] font-bold uppercase tracking-[0.18em] ring-1 shadow-sm whitespace-nowrap ${statusBadgeStyles[spot.status]}`}>
-                      {statusLabel[spot.status]}
-                    </span>
+                    {spot.accessible ? (
+                      <span className="text-base">♿</span>
+                    ) : null}
                   </div>
-                  {spot.accessible ? (
-                    <p className="mt-3 text-[0.72rem] font-medium uppercase tracking-[0.22em] text-slate-800">
-                      Accessible
-                    </p>
-                  ) : null}
                 </div>
               ))}
             </div>
