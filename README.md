@@ -1,19 +1,47 @@
-# React + TypeScript + Vite
+# Smart Parking
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository contains the Smart Parking web application with a React frontend and an Express backend backed by SQLite.
 
-Currently, two official plugins are available:
+## Project overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Frontend: React + TypeScript + Vite
+- Backend: Express.js + SQLite
+- Authentication: email/password signup and login with JWT-based session persistence
+- Docker Compose: runs both `web` and `api` services together
 
-## React Compiler
+## Quick start for developers
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Option 1: Run everything with Docker Compose
 
-## Expanding the ESLint configuration
+From the repo root:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+docker compose up
+```
+
+Then open the app in your browser:
+
+```bash
+http://localhost:5173
+```
+
+The backend API will be available at:
+
+```bash
+http://localhost:4000
+```
+
+### Option 2: Run locally without Docker
+
+#### 1. Install dependencies
+
+From the repository root:
+
+```bash
+npm install 
+```
+
+Then install backend dependencies:
 
 ```js
 export default defineConfig([
