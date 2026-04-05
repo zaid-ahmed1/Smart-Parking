@@ -35,6 +35,17 @@ const dbGet = (sql, params = []) =>
         })
     })
 
+const dbAll = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(rows)
+            }
+        })
+    })
+
 app.post('/signup', async (req, res) => {
     try {
         const { email, firstName, middleName, lastName, dob, phone, password } = req.body
@@ -86,6 +97,40 @@ app.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error:', error)
         return res.status(500).json({ error: 'Unable to log in.' })
+    }
+})
+
+app.get('/lots', async (_req, res) => {
+    try {
+        const lots = await dbAll('SELECT id, name, description, rows, cols FROM lots ORDER BY id')
+        return res.json(lots)
+    } catch (error) {
+        console.error('Error fetching lots:', error)
+        return res.status(500).json({ error: 'Unable to load lots.' })
+    }
+})
+
+app.get('/lots/:id', async (req, res) => {
+    try {
+        const lotId = Number(req.params.id)
+        if (Number.isNaN(lotId)) {
+            return res.status(400).json({ error: 'Invalid lot ID.' })
+        }
+
+        const lot = await dbGet('SELECT id, name, description, rows, cols FROM lots WHERE id = ?', [lotId])
+        if (!lot) {
+            return res.status(404).json({ error: 'Lot not found.' })
+        }
+
+        const spots = await dbAll(
+            'SELECT id, label, row, col, status, accessible FROM spots WHERE lot_id = ? ORDER BY row, col',
+            [lotId],
+        )
+
+        return res.json({ ...lot, spots })
+    } catch (error) {
+        console.error('Error fetching lot details:', error)
+        return res.status(500).json({ error: 'Unable to load lot details.' })
     }
 })
 
