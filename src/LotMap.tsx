@@ -26,9 +26,15 @@ interface LotDetails extends Lot {
 }
 
 const statusStyles: Record<SpotStatus, string> = {
-  free: 'bg-emerald-100 border-emerald-300 text-emerald-900',
-  taken: 'bg-rose-100 border-rose-300 text-rose-900',
-  ev: 'bg-sky-100 border-sky-300 text-sky-900',
+  free: 'bg-emerald-100 border-emerald-400 text-emerald-900',
+  taken: 'bg-rose-100 border-rose-400 text-rose-900',
+  ev: 'bg-sky-100 border-sky-400 text-sky-900',
+}
+
+const statusBadgeStyles: Record<SpotStatus, string> = {
+  free: 'bg-emerald-500 text-white ring-emerald-600',
+  taken: 'bg-rose-500 text-white ring-rose-600',
+  ev: 'bg-sky-500 text-white ring-sky-600',
 }
 
 const statusLabel: Record<SpotStatus, string> = {
@@ -170,7 +176,7 @@ function LotMap() {
       <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-xl font-bold text-slate-950">
               {lotDetails ? lotDetails.name : 'Parking spot map'}
             </h2>
             <p className="text-sm leading-6 text-slate-600">
@@ -205,9 +211,11 @@ function LotMap() {
                   {spot.accessible ? (
                     <span className="absolute left-3 top-3 text-[0.65rem]">♿</span>
                   ) : null}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm uppercase tracking-[0.24em]">{spot.label}</span>
-                    <span className="rounded-full bg-white/95 px-2 py-1 text-[0.75rem] font-semibold uppercase tracking-[0.18em] text-slate-950 ring-1 ring-slate-200 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-950">
+                      {spot.label}
+                    </span>
+                    <span className={`rounded-full px-3 py-1 text-[0.8rem] font-bold uppercase tracking-[0.18em] ring-1 shadow-sm whitespace-nowrap ${statusBadgeStyles[spot.status]}`}>
                       {statusLabel[spot.status]}
                     </span>
                   </div>
