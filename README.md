@@ -71,3 +71,27 @@ export default defineConfig([
   },
 ])
 ```
+
+## Running the project
+
+The frontend is a Vite React app and the backend is an Express server using SQLite.
+
+1. Install dependencies in the frontend:
+   ```bash
+   npm install
+   ```
+2. Install the backend dependencies:
+   ```bash
+   cd server
+   npm install
+   ```
+3. Start the backend:
+   ```bash
+   npm run serve:server
+   ```
+4. Start the frontend from the project root:
+   ```bash
+   npm run dev
+   ```
+
+The frontend expects the backend at `http://localhost:3000`.
