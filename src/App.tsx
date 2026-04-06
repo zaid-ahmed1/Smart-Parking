@@ -3,6 +3,7 @@ import './App.css'
 import LotMap from './LotMap'
 
 type AuthPage = 'login' | 'signup'
+type AuthView = 'parking' | 'profile'
 
 interface SignupData {
   email: string
@@ -44,6 +45,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
+  const [view, setView] = useState<AuthView>('parking')
 
   const switchPage = (nextPage: AuthPage) => {
     setPage(nextPage)
@@ -120,6 +122,7 @@ function App() {
   const handleLogout = () => {
     setAuthenticated(false)
     setPage('login')
+    setView('parking')
     setMessage(null)
     setError(null)
   }
@@ -128,28 +131,79 @@ function App() {
     <main className="min-h-screen bg-[#eff8ff] px-4 py-10 text-slate-950">
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
         {authenticated ? (
-          <section className="space-y-6">
-            <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+          <section className="space-y-6 pb-24">
+            {view === 'parking' ? (
+              <>
+                <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
                   <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Smart Parking</p>
                   <h1 className="text-3xl font-bold tracking-tight text-slate-950">Live Spot Map</h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
+                    View real-time availability for campus parking lots. Colour-coded spots update automatically so you always know which spaces are free, taken, EV-ready, or accessible.
+                  </p>
+                </div>
+                <LotMap />
+              </>
+            ) : (
+              <>
+                <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Smart Parking</p>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-950">Account settings</h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
+                    Review your session details and securely sign out when you are finished.
+                  </p>
                 </div>
 
+                <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-950">Current session</h2>
+                    <p className="text-sm text-slate-600">You are signed in to the Smart Parking application. Signing out will remove your session and redirect you to the login screen.</p>
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm">
+                      <p className="font-medium text-slate-900">Active session</p>
+                      <p className="mt-1 text-slate-600">Authenticated on this device.</p>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
+              <div className="mx-auto flex max-w-[960px] items-center justify-around px-4 py-2">
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                  onClick={() => setView('parking')}
+                  className={`flex flex-col items-center gap-1 px-6 py-2 text-xs font-semibold transition ${view === 'parking' ? 'text-slate-950' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  Log out
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                    <line x1="9" y1="3" x2="9" y2="18" />
+                    <line x1="15" y1="6" x2="15" y2="21" />
+                  </svg>
+                  Parking
+                  {view === 'parking' && <span className="h-1 w-1 rounded-full bg-slate-950" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView('profile')}
+                  className={`flex flex-col items-center gap-1 px-6 py-2 text-xs font-semibold transition ${view === 'profile' ? 'text-slate-950' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  Profile
+                  {view === 'profile' && <span className="h-1 w-1 rounded-full bg-slate-950" />}
                 </button>
               </div>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                View real-time availability for campus parking lots. Colour-coded spots update automatically so you always know which spaces are free, taken, EV-ready, or accessible.
-              </p>
-            </div>
-
-            <LotMap />
+            </nav>
           </section>
         ) : (
           <section className="auth-card">
