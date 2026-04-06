@@ -91,7 +91,8 @@ function getSearchResults(lots: Lot[], searchTerm: string) {
   )
 
   if (buildingMatch) {
-    return findClosestLots(lots, buildingMatch.coords)
+    const closestLot = findClosestLots(lots, buildingMatch.coords)[0]
+    return closestLot ? [closestLot] : []
   }
 
   return lots.filter(
