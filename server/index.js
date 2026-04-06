@@ -102,7 +102,7 @@ app.post('/login', async (req, res) => {
 
 app.get('/lots', async (_req, res) => {
     try {
-        const lots = await dbAll('SELECT id, name, description, rows, cols FROM lots ORDER BY id')
+        const lots = await dbAll('SELECT id, name, description, rows, cols, latitude, longitude FROM lots ORDER BY id')
         return res.json(lots)
     } catch (error) {
         console.error('Error fetching lots:', error)
@@ -117,13 +117,13 @@ app.get('/lots/:id', async (req, res) => {
             return res.status(400).json({ error: 'Invalid lot ID.' })
         }
 
-        const lot = await dbGet('SELECT id, name, description, rows, cols FROM lots WHERE id = ?', [lotId])
+        const lot = await dbGet('SELECT id, name, description, rows, cols, latitude, longitude FROM lots WHERE id = ?', [lotId])
         if (!lot) {
             return res.status(404).json({ error: 'Lot not found.' })
         }
 
         const spots = await dbAll(
-            'SELECT id, label, row, col, status, accessible FROM spots WHERE lot_id = ? ORDER BY row, col',
+            'SELECT id, label, row, col, status, accessible, ev FROM spots WHERE lot_id = ? ORDER BY row, col',
             [lotId],
         )
 

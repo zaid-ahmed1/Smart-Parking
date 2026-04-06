@@ -34,6 +34,17 @@ const dbGet = (sql, params = []) =>
         })
     })
 
+const dbAll = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(rows)
+            }
+        })
+    })
+
 export async function initDb() {
     await dbRun(
         `CREATE TABLE IF NOT EXISTS users (
@@ -55,7 +66,9 @@ export async function initDb() {
         name TEXT NOT NULL,
         description TEXT,
         rows INTEGER NOT NULL,
-        cols INTEGER NOT NULL
+        cols INTEGER NOT NULL,
+        latitude REAL,
+        longitude REAL
       )`
     )
 
@@ -68,67 +81,176 @@ export async function initDb() {
         col INTEGER NOT NULL,
         status TEXT NOT NULL,
         accessible INTEGER NOT NULL DEFAULT 0,
+        ev INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (lot_id) REFERENCES lots(id)
       )`
     )
 
-    const existingLot = await dbGet('SELECT COUNT(*) AS count FROM lots')
-    if (!existingLot || !existingLot.count) {
-        const mainLot = await dbRun(
-            `INSERT INTO lots (name, description, rows, cols) VALUES (?, ?, ?, ?)`,
-            ['Main Campus Lot', 'Parking near the main campus buildings with quick access to classrooms and services.', 4, 6]
+    const ensureColumn = async (table, name, definition) => {
+        try {
+            await dbRun(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`)
+        } catch (err) {
+            // ignore if the column already exists
+        }
+    }
+
+    await ensureColumn('lots', 'latitude', 'REAL')
+    await ensureColumn('lots', 'longitude', 'REAL')
+    await ensureColumn('spots', 'ev', 'INTEGER NOT NULL DEFAULT 0')
+
+    const parkingLots = [
+        {
+            name: 'Lot 1 - Main Campus',
+            description: 'Central parking lot near the main campus buildings and Taylor Family Digital Library.',
+            rows: 6,
+            cols: 8,
+            latitude: 51.0766,
+            longitude: -114.1323,
+            evCount: 8,
+            accessibleCount: 6,
+        },
+        {
+            name: 'Lot 2 - Science Complex',
+            description: 'Parking near the science buildings and Earth Sciences department.',
+            rows: 5,
+            cols: 7,
+            latitude: 51.0772,
+            longitude: -114.1338,
+            evCount: 6,
+            accessibleCount: 4,
+        },
+        {
+            name: 'Lot 3 - Business School',
+            description: 'Convenient parking for Haskayne School of Business and adjacent buildings.',
+            rows: 4,
+            cols: 6,
+            latitude: 51.0751,
+            longitude: -114.1312,
+            evCount: 5,
+            accessibleCount: 3,
+        },
+        {
+            name: 'Lot 4 - Residence',
+            description: 'Parking near student residences and dining facilities.',
+            rows: 5,
+            cols: 5,
+            latitude: 51.0785,
+            longitude: -114.1328,
+            evCount: 5,
+            accessibleCount: 3,
+        },
+        {
+            name: 'Lot 5 - Athletics',
+            description: 'Parking for the Jack Simpson Gymnasium and athletic facilities.',
+            rows: 4,
+            cols: 5,
+            latitude: 51.0748,
+            longitude: -114.1342,
+            evCount: 4,
+            accessibleCount: 3,
+        },
+        {
+            name: 'Lot 6 - Engineering',
+            description: 'Parking near the Schulich School of Engineering and IT buildings.',
+            rows: 5,
+            cols: 6,
+            latitude: 51.0768,
+            longitude: -114.1355,
+            evCount: 6,
+            accessibleCount: 4,
+        },
+        {
+            name: 'Lot 7 - Health Sciences',
+            description: 'Parking for the Cumming School of Medicine and health sciences facilities.',
+            rows: 4,
+            cols: 5,
+            latitude: 51.0798,
+            longitude: -114.1318,
+            evCount: 4,
+            accessibleCount: 3,
+        },
+        {
+            name: 'Lot 8 - Veterinary Medicine',
+            description: 'Parking near the Faculty of Veterinary Medicine and WCVM buildings.',
+            rows: 3,
+            cols: 5,
+            latitude: 51.0775,
+            longitude: -114.1298,
+            evCount: 3,
+            accessibleCount: 2,
+        },
+        {
+            name: 'Lot 9 - Foothills Campus',
+            description: 'Parking at the Foothills Campus medical complex.',
+            rows: 4,
+            cols: 6,
+            latitude: 51.0722,
+            longitude: -114.1268,
+            evCount: 5,
+            accessibleCount: 4,
+        },
+        {
+            name: 'Lot 10 - Research Park',
+            description: 'Parking near the University Research Park and innovation facilities.',
+            rows: 3,
+            cols: 4,
+            latitude: 51.0805,
+            longitude: -114.1302,
+            evCount: 3,
+            accessibleCount: 2,
+        },
+    ]
+
+    const existingLots = await dbAll('SELECT name FROM lots')
+    const existingNames = new Set(existingLots.map((row) => row.name))
+
+    // Delete all existing lots to start fresh
+    await dbRun('DELETE FROM spots')
+    await dbRun('DELETE FROM lots')
+
+    const generateSpots = (lotId, rows, cols, evCount, accessibleCount) => {
+        const spots = []
+        const rowLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        const total = rows * cols
+        const evIndexes = new Set()
+
+        for (let idx = 0; idx < evCount; idx += 1) {
+            evIndexes.add(idx * 3 % total)
+        }
+
+        const accessibleIndexes = new Set()
+        for (let idx = 0; idx < accessibleCount; idx += 1) {
+            accessibleIndexes.add((idx * 4 + 1) % total)
+        }
+
+        for (let r = 1; r <= rows; r += 1) {
+            for (let c = 1; c <= cols; c += 1) {
+                const position = (r - 1) * cols + (c - 1)
+                const label = `${rowLetters[r - 1]}${c}`
+                const isEv = evIndexes.has(position)
+        const status = position % 4 === 0 ? 'taken' : 'free'
+        const accessible = accessibleIndexes.has(position) ? 1 : 0
+        spots.push([lotId, label, r, c, status, accessible, isEv ? 1 : 0])
+            }
+        }
+
+        return spots
+    }
+
+    for (const lot of parkingLots) {
+        await dbRun(
+            `INSERT INTO lots (name, description, rows, cols, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)`,
+            [lot.name, lot.description, lot.rows, lot.cols, lot.latitude, lot.longitude],
         )
 
-        const garageLot = await dbRun(
-            `INSERT INTO lots (name, description, rows, cols) VALUES (?, ?, ?, ?)`,
-            ['East Garage Lot', 'Three-level garage with EV charging and reserved accessible spaces.', 3, 4]
-        )
+        const lotRow = await dbGet('SELECT id FROM lots WHERE name = ?', [lot.name])
+        if (!lotRow) continue
 
-        const mainLotId = mainLot.lastID
-        const garageLotId = garageLot.lastID
-
-        const spots = [
-            [mainLotId, 'A1', 1, 1, 'free', 0],
-            [mainLotId, 'A2', 1, 2, 'taken', 0],
-            [mainLotId, 'A3', 1, 3, 'ev', 0],
-            [mainLotId, 'A4', 1, 4, 'free', 0],
-            [mainLotId, 'A5', 1, 5, 'taken', 0],
-            [mainLotId, 'A6', 1, 6, 'free', 0],
-            [mainLotId, 'B1', 2, 1, 'free', 0],
-            [mainLotId, 'B2', 2, 2, 'free', 0],
-            [mainLotId, 'B3', 2, 3, 'free', 0],
-            [mainLotId, 'B4', 2, 4, 'taken', 0],
-            [mainLotId, 'B5', 2, 5, 'ev', 0],
-            [mainLotId, 'B6', 2, 6, 'free', 0],
-            [mainLotId, 'C1', 3, 1, 'free', 0],
-            [mainLotId, 'C2', 3, 2, 'free', 0],
-            [mainLotId, 'C3', 3, 3, 'free', 1],
-            [mainLotId, 'C4', 3, 4, 'taken', 1],
-            [mainLotId, 'C5', 3, 5, 'free', 0],
-            [mainLotId, 'C6', 3, 6, 'free', 0],
-            [mainLotId, 'D1', 4, 1, 'taken', 0],
-            [mainLotId, 'D2', 4, 2, 'free', 0],
-            [mainLotId, 'D3', 4, 3, 'free', 0],
-            [mainLotId, 'D4', 4, 4, 'ev', 0],
-            [mainLotId, 'D5', 4, 5, 'free', 0],
-            [mainLotId, 'D6', 4, 6, 'free', 0],
-            [garageLotId, 'A1', 1, 1, 'free', 1],
-            [garageLotId, 'A2', 1, 2, 'ev', 0],
-            [garageLotId, 'A3', 1, 3, 'taken', 0],
-            [garageLotId, 'A4', 1, 4, 'free', 0],
-            [garageLotId, 'B1', 2, 1, 'free', 0],
-            [garageLotId, 'B2', 2, 2, 'taken', 0],
-            [garageLotId, 'B3', 2, 3, 'ev', 0],
-            [garageLotId, 'B4', 2, 4, 'free', 0],
-            [garageLotId, 'C1', 3, 1, 'free', 0],
-            [garageLotId, 'C2', 3, 2, 'free', 1],
-            [garageLotId, 'C3', 3, 3, 'free', 0],
-            [garageLotId, 'C4', 3, 4, 'taken', 0],
-        ]
-
+        const lotId = lotRow.id
+        const spots = generateSpots(lotId, lot.rows, lot.cols, lot.evCount, lot.accessibleCount)
         for (const spot of spots) {
             await dbRun(
-                `INSERT INTO spots (lot_id, label, row, col, status, accessible) VALUES (?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO spots (lot_id, label, row, col, status, accessible, ev) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 spot,
             )
         }
