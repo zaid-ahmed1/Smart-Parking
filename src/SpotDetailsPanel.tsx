@@ -1,4 +1,4 @@
-type SpotStatus = 'free' | 'taken' | 'ev'
+type SpotStatus = 'free' | 'taken'
 
 interface Spot {
   id: number
@@ -7,6 +7,7 @@ interface Spot {
   col: number
   status: SpotStatus
   accessible: number
+  ev: number
 }
 
 interface SpotDetailsPanelProps {
@@ -29,13 +30,6 @@ const statusConfig: Record<SpotStatus, { label: string; bg: string; border: stri
     border: 'border-rose-200',
     text: 'text-rose-900',
     dot: 'bg-rose-400',
-  },
-  ev: {
-    label: 'EV Charging',
-    bg: 'bg-sky-50',
-    border: 'border-sky-200',
-    text: 'text-sky-900',
-    dot: 'bg-sky-400',
   },
 }
 
@@ -107,7 +101,7 @@ function SpotDetailsPanel({ spot, lotName, onBack }: SpotDetailsPanelProps) {
       <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Type</p>
         <div className="mt-4 flex items-center gap-3">
-          {spot.status === 'ev' ? (
+          {spot.ev ? (
             <>
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-xl">⚡</span>
               <div>
