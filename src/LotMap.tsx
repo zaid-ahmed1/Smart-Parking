@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SpotDetailsPanel from './SpotDetailsPanel'
 
 const API_BASE_URL = 'http://localhost:3000'
 
@@ -46,6 +47,7 @@ function LotMap() {
   const [lots, setLots] = useState<Lot[]>([])
   const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
   const [lotDetails, setLotDetails] = useState<LotDetails | null>(null)
+  const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,6 +107,16 @@ function LotMap() {
   }, [selectedLotId])
 
   const counts = lotDetails ? buildSummary(lotDetails.spots) : null
+
+  if (selectedSpot && lotDetails) {
+    return (
+      <SpotDetailsPanel
+        spot={selectedSpot}
+        lotName={lotDetails.name}
+        onBack={() => setSelectedSpot(null)}
+      />
+    )
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -194,9 +206,11 @@ function LotMap() {
           <>
             <div className="grid gap-2 py-4" style={{ gridTemplateColumns: `repeat(${lotDetails.cols}, minmax(0, 1fr))` }}>
               {lotDetails.spots.map((spot) => (
-                <div
+                <button
                   key={spot.id}
-                  className={`min-h-[96px] overflow-hidden rounded-[28px] border p-3 text-left text-xs font-semibold ${statusStyles[spot.status]}`}
+                  type="button"
+                  onClick={() => setSelectedSpot(spot)}
+                  className={`min-h-[96px] overflow-hidden rounded-[28px] border p-3 text-left text-xs font-semibold transition hover:opacity-80 hover:shadow-md ${statusStyles[spot.status]}`}
                 >
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-950">
@@ -206,7 +220,7 @@ function LotMap() {
                       <span className="text-base">♿</span>
                     ) : null}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
 
