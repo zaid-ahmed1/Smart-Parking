@@ -45,6 +45,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
+  const [userId, setUserId] = useState<number | null>(null)
   const [view, setView] = useState<AuthView>('parking')
 
   const switchPage = (nextPage: AuthPage) => {
@@ -109,6 +110,7 @@ function App() {
         setError(body.error || 'Login failed.')
       } else {
         setAuthenticated(true)
+        setUserId(body.userId ?? null)
         setMessage('Login successful. Welcome back!')
         setLoginData(initialLoginData)
       }
@@ -121,6 +123,7 @@ function App() {
 
   const handleLogout = () => {
     setAuthenticated(false)
+    setUserId(null)
     setPage('login')
     setView('parking')
     setMessage(null)
@@ -141,7 +144,7 @@ function App() {
                     View real-time availability for campus parking lots. Colour-coded spots update automatically so you always know which spaces are free, taken, EV-ready, or accessible.
                   </p>
                 </div>
-                <LotMap />
+                <LotMap userId={userId} />
               </>
             ) : (
               <>

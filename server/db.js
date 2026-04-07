@@ -94,6 +94,24 @@ export async function initDb() {
         }
     }
 
+    await dbRun(
+        `CREATE TABLE IF NOT EXISTS parking_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        lot_id INTEGER NOT NULL,
+        spot_id INTEGER NOT NULL,
+        duration_hours INTEGER NOT NULL DEFAULT 0,
+        duration_minutes INTEGER NOT NULL DEFAULT 0,
+        total_minutes INTEGER NOT NULL,
+        fee_amount REAL NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (lot_id) REFERENCES lots(id),
+        FOREIGN KEY (spot_id) REFERENCES spots(id)
+      )`
+    )
+
     await ensureColumn('lots', 'latitude', 'REAL')
     await ensureColumn('lots', 'longitude', 'REAL')
     await ensureColumn('spots', 'ev', 'INTEGER NOT NULL DEFAULT 0')

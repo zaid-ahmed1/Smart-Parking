@@ -93,7 +93,7 @@ app.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password.' })
         }
 
-        return res.json({ message: 'Login successful.' })
+        return res.json({ message: 'Login successful.', userId: user.id })
     } catch (error) {
         console.error('Login error:', error)
         return res.status(500).json({ error: 'Unable to log in.' })
@@ -131,6 +131,61 @@ app.get('/lots/:id', async (req, res) => {
     } catch (error) {
         console.error('Error fetching lot details:', error)
         return res.status(500).json({ error: 'Unable to load lot details.' })
+    }
+})
+
+const RATE_PER_HOUR = 2.50
+
+app.post('/sessions', async (req, res) => {
+    try {
+        const { userId, lotId, spotId, hours, minutes } = req.body
+
+        if (!userId || !lotId || !spotId) {
+            return res.status(400).json({ error: 'userId, lotId, and spotId are required.' })
+        }
+
+        const durationHours = Math.max(0, Math.floor(Number(hours) || 0))
+        const durationMinutes = Math.max(0, Math.min(59, Math.floor(Number(minutes) || 0)))
+        const totalMinutes = durationHours * 60 + durationMinutes
+
+        if (totalMinutes <= 0) {
+            return res.status(400).json({ error: 'Duration must be greater than zero.' })
+        }
+
+        const feeAmount = parseFloat(((totalMinutes / 60) * RATE_PER_HOUR).toFixed(2))
+        const createdAt = new Date().toISOString()
+
+        const spot = await dbGet('SELECT id, status FROM spots WHERE id = ?', [spotId])
+        if (!spot) {
+            return res.status(404).json({ error: 'Spot not found.' })
+        }
+        if (spot.status === 'taken') {
+            return res.status(409).json({ error: 'This spot has already been taken.' })
+        }
+
+        const result = await dbRun(
+            `INSERT INTO parking_sessions (user_id, lot_id, spot_id, duration_hours, duration_minutes, total_minutes, fee_amount, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+            [userId, lotId, spotId, durationHours, durationMinutes, totalMinutes, feeAmount, createdAt]
+        )
+
+        await dbRun(`UPDATE spots SET status = 'taken' WHERE id = ?`, [spotId])
+
+        return res.status(201).json({
+            id: result.lastID,
+            userId,
+            lotId,
+            spotId,
+            durationHours,
+            durationMinutes,
+            totalMinutes,
+            feeAmount,
+            status: 'active',
+            createdAt,
+        })
+    } catch (error) {
+        console.error('Error creating session:', error)
+        return res.status(500).json({ error: 'Unable to create parking session.' })
     }
 })
 
