@@ -102,7 +102,11 @@ function getSearchResults(lots: Lot[], searchTerm: string) {
   )
 }
 
-function LotMap() {
+interface LotMapProps {
+  userId: number | null
+}
+
+function LotMap({ userId }: LotMapProps) {
   const [lots, setLots] = useState<Lot[]>([])
   const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
   const [lotDetails, setLotDetails] = useState<LotDetails | null>(null)
@@ -112,6 +116,7 @@ function LotMap() {
   const [searchTerm, setSearchTerm] = useState('')
   const lotMapRef = useRef<HTMLDivElement>(null)
   const initialLoadRef = useRef(true)
+  const refreshLotRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     const loadLots = async () => {
@@ -163,6 +168,7 @@ function LotMap() {
       }
     }
 
+    refreshLotRef.current = loadLot
     loadLot()
     interval = window.setInterval(loadLot, 5000)
 
@@ -199,7 +205,14 @@ function LotMap() {
       <SpotDetailsPanel
         spot={selectedSpot}
         lotName={lotDetails.name}
-        onBack={() => setSelectedSpot(null)}
+        lotId={lotDetails.id}
+        userId={userId}
+        onBack={(booked) => {
+          if (booked) {
+            refreshLotRef.current?.()
+          }
+          setSelectedSpot(null)
+        }}
       />
     )
   }
