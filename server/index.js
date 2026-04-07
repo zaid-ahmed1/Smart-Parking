@@ -134,6 +134,35 @@ app.get('/lots/:id', async (req, res) => {
     }
 })
 
+app.get('/sessions/active', async (req, res) => {
+    try {
+        const userId = Number(req.query.userId)
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required.' })
+        }
+        const sessions = await dbAll(
+            `SELECT ps.id, ps.total_minutes, ps.created_at, ps.fee_amount,
+                    sp.label AS spot_label, sp.ev,
+                    l.name AS lot_name
+             FROM parking_sessions ps
+             JOIN spots sp ON sp.id = ps.spot_id
+             JOIN lots l ON l.id = ps.lot_id
+             WHERE ps.user_id = ? AND ps.status = 'active'`,
+            [userId]
+        )
+        const now = Date.now()
+        const result = sessions.map((s) => {
+            const expiresAt = new Date(s.created_at).getTime() + s.total_minutes * 60 * 1000
+            const minutesLeft = (expiresAt - now) / 60000
+            return { ...s, expires_at: new Date(expiresAt).toISOString(), minutes_left: minutesLeft }
+        })
+        return res.json(result)
+    } catch (error) {
+        console.error('Error fetching active sessions:', error)
+        return res.status(500).json({ error: 'Unable to load active sessions.' })
+    }
+})
+
 const RATE_PER_HOUR = 2.50
 
 app.post('/sessions', async (req, res) => {

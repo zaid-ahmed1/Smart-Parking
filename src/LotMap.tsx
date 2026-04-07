@@ -102,11 +102,19 @@ function getSearchResults(lots: Lot[], searchTerm: string) {
   )
 }
 
-interface LotMapProps {
-  userId: number | null
+interface BookedInfo {
+  lotName: string
+  spotLabel: string
+  feeAmount: number
+  isEv: boolean
 }
 
-function LotMap({ userId }: LotMapProps) {
+interface LotMapProps {
+  userId: number | null
+  onBooked?: (info: BookedInfo) => void
+}
+
+function LotMap({ userId, onBooked }: LotMapProps) {
   const [lots, setLots] = useState<Lot[]>([])
   const [selectedLotId, setSelectedLotId] = useState<number | null>(null)
   const [lotDetails, setLotDetails] = useState<LotDetails | null>(null)
@@ -213,6 +221,7 @@ function LotMap({ userId }: LotMapProps) {
           }
           setSelectedSpot(null)
         }}
+        onBooked={onBooked}
       />
     )
   }

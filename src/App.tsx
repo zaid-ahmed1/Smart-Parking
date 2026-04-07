@@ -1,6 +1,10 @@
-import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react'
 import './App.css'
 import LotMap from './LotMap'
+import NotificationBell from './NotificationBell'
+import { useNotifications } from './useNotifications'
+
+const API_BASE_URL = 'http://localhost:3000'
 
 type AuthPage = 'login' | 'signup'
 type AuthView = 'parking' | 'profile'
@@ -35,8 +39,6 @@ const initialLoginData: LoginData = {
   password: '',
 }
 
-const API_BASE_URL = 'http://localhost:3000'
-
 function App() {
   const [page, setPage] = useState<AuthPage>('signup')
   const [signupData, setSignupData] = useState<SignupData>(initialSignupData)
@@ -47,6 +49,75 @@ function App() {
   const [authenticated, setAuthenticated] = useState(false)
   const [userId, setUserId] = useState<number | null>(null)
   const [view, setView] = useState<AuthView>('parking')
+
+  const { notifications, notify, markAllRead, clearOne, clearAll, unreadCount, requestPermission } = useNotifications()
+  // Tracks which (sessionId, threshold) pairs have already fired, e.g. "42-5", "42-expired"
+  const notifiedExpiry = useRef(new Set<string>())
+
+  // Request browser notification permission when user logs in
+  useEffect(() => {
+    if (authenticated) requestPermission()
+  }, [authenticated, requestPermission])
+
+  // Poll active sessions every 30s and fire expiry warnings at 30, 15, 5, 1 min and expiry
+  useEffect(() => {
+    if (!authenticated || !userId) return
+
+    const THRESHOLDS = [30, 15, 5, 1] // minutes, checked largest-first
+
+    const checkSessions = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/sessions/active?userId=${userId}`)
+        if (!res.ok) return
+        const sessions: { id: number; minutes_left: number; spot_label: string; lot_name: string }[] = await res.json()
+
+        for (const s of sessions) {
+          const minsLeft = s.minutes_left
+          const label = `Spot ${s.spot_label} at ${s.lot_name}`
+
+          // Expired
+          if (minsLeft <= 0 && !notifiedExpiry.current.has(`${s.id}-expired`)) {
+            notifiedExpiry.current.add(`${s.id}-expired`)
+            // Mark all thresholds done so they don't fire after expiry
+            THRESHOLDS.forEach((t) => notifiedExpiry.current.add(`${s.id}-${t}`))
+            notify('expiry', 'Parking session expired', `${label} has expired.`)
+            continue
+          }
+
+          // Threshold warnings — fire only the largest un-notified threshold crossed
+          for (const t of THRESHOLDS) {
+            const key = `${s.id}-${t}`
+            if (minsLeft <= t && !notifiedExpiry.current.has(key)) {
+              notifiedExpiry.current.add(key)
+              const minsDisplay = Math.ceil(minsLeft)
+              notify(
+                'expiry',
+                'Parking session expiring soon',
+                `${label} — ${minsDisplay} minute${minsDisplay === 1 ? '' : 's'} remaining.`
+              )
+              break // one notification per session per poll
+            }
+          }
+        }
+      } catch {
+        // non-critical
+      }
+    }
+
+    checkSessions()
+    const interval = setInterval(checkSessions, 30000)
+    return () => clearInterval(interval)
+  }, [authenticated, userId, notify])
+
+  function handleBooked({ lotName, spotLabel, feeAmount, isEv }: { lotName: string; spotLabel: string; feeAmount: number; isEv: boolean }) {
+    const feeStr = feeAmount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })
+    notify('payment', 'Payment confirmed', `Spot ${spotLabel} at ${lotName} booked for ${feeStr}.`)
+    if (isEv) {
+      setTimeout(() => {
+        notify('ev_disconnect', 'EV charger disconnected', `The charger at spot ${spotLabel} has been disconnected. Please check your vehicle.`)
+      }, 30000)
+    }
+  }
 
   const switchPage = (nextPage: AuthPage) => {
     setPage(nextPage)
@@ -144,7 +215,7 @@ function App() {
                     View real-time availability for campus parking lots. Colour-coded spots update automatically so you always know which spaces are free, taken, EV-ready, or accessible.
                   </p>
                 </div>
-                <LotMap userId={userId} />
+                <LotMap userId={userId} onBooked={handleBooked} />
               </>
             ) : (
               <>
@@ -193,6 +264,15 @@ function App() {
                   Parking
                   {view === 'parking' && <span className="h-1 w-1 rounded-full bg-slate-950" />}
                 </button>
+
+                <NotificationBell
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onOpen={markAllRead}
+                  onClearOne={clearOne}
+                  onClearAll={clearAll}
+                />
+
                 <button
                   type="button"
                   onClick={() => setView('profile')}
