@@ -53,7 +53,7 @@ function SessionDurationModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="duration-modal-title"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center p-4 pb-20 sm:pb-4"
     >
       <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white shadow-2xl">
         {/* Header */}
