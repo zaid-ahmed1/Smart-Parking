@@ -15,12 +15,20 @@ interface Spot {
   ev: number
 }
 
+interface BookedInfo {
+  lotName: string
+  spotLabel: string
+  feeAmount: number
+  isEv: boolean
+}
+
 interface SpotDetailsPanelProps {
   spot: Spot
   lotName: string
   lotId: number
   userId: number | null
   onBack: (booked?: boolean) => void
+  onBooked?: (info: BookedInfo) => void
 }
 
 const statusConfig: Record<SpotStatus, { label: string; bg: string; border: string; text: string; dot: string }> = {
@@ -40,7 +48,7 @@ const statusConfig: Record<SpotStatus, { label: string; bg: string; border: stri
   },
 }
 
-function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack }: SpotDetailsPanelProps) {
+function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: SpotDetailsPanelProps) {
   const status = statusConfig[spot.status]
 
   const [showModal, setShowModal] = useState(false)
@@ -89,6 +97,7 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack }: SpotDetailsP
         setConfirmedFee(body.feeAmount)
         setShowModal(false)
         setBookingConfirmed(true)
+        onBooked?.({ lotName, spotLabel: spot.label, feeAmount: body.feeAmount, isEv: spot.ev === 1 })
       }
     } catch {
       setBookingError('Unable to reach the server. Please try again.')
