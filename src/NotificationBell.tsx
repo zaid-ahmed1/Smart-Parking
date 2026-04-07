@@ -65,10 +65,10 @@ export default function NotificationBell({ notifications, unreadCount, onOpen, o
       {open && (
         <>
           {/* backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[998]" onClick={() => setOpen(false)} />
 
           {/* panel — fixed above the nav bar, centered with safe side margins */}
-          <div className="fixed bottom-[72px] left-3 right-3 z-50 mx-auto max-w-md rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+          <div className="fixed bottom-[72px] left-3 right-3 z-[999] mx-auto max-w-md rounded-[28px] border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
               <p className="text-sm font-semibold text-slate-950">Notifications</p>
               <div className="flex items-center gap-2">

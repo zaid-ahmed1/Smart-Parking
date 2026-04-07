@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 
 export type NotificationType = 'payment' | 'expiry' | 'ev_disconnect'
 
@@ -11,16 +11,11 @@ export interface AppNotification {
   read: boolean
 }
 
-const iconMap: Record<NotificationType, string> = {
-  payment: '💳',
-  expiry: '⏰',
-  ev_disconnect: '⚡',
-}
-
 let nextId = 0
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [toasts, setToasts] = useState<AppNotification[]>([])
 
   const notify = useCallback((type: NotificationType, title: string, body: string) => {
     const notification: AppNotification = {
@@ -32,9 +27,13 @@ export function useNotifications() {
       read: false,
     }
     setNotifications((prev) => [notification, ...prev])
+    setToasts((prev) => [...prev, notification])
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== notification.id))
+    }, 4000)
 
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: `${iconMap[type]}` })
+      new Notification(title, { body })
     }
   }, [])
 
@@ -58,5 +57,5 @@ export function useNotifications() {
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
-  return { notifications, notify, markAllRead, clearOne, clearAll, unreadCount, requestPermission }
+  return { notifications, toasts, notify, markAllRead, clearOne, clearAll, unreadCount, requestPermission }
 }
