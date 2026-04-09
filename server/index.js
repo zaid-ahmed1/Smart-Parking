@@ -135,7 +135,7 @@ app.get('/payments', async (req, res) => {
 
 app.post('/payments', async (req, res) => {
     try {
-        const { userId, lotId, spotId, hours, minutes, paymentMethodId, newCard } = req.body
+        const { userId, lotId, spotId, hours, minutes, vehicleId, paymentMethodId, newCard } = req.body
 
         if (!userId || !lotId || !spotId) {
             return res.status(400).json({ error: 'userId, lotId, and spotId are required.' })
@@ -163,6 +163,14 @@ app.post('/payments', async (req, res) => {
         }
         if (spot.status === 'taken') {
             return res.status(409).json({ error: 'This spot has already been taken.' })
+        }
+
+        const resolvedVehicleId = vehicleId ? Number(vehicleId) : null
+        if (resolvedVehicleId) {
+            const vehicle = await dbGet('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [resolvedVehicleId, userId])
+            if (!vehicle) {
+                return res.status(400).json({ error: 'Selected vehicle not found.' })
+            }
         }
 
         let selectedPaymentMethodId = paymentMethodId
@@ -240,9 +248,9 @@ app.post('/payments', async (req, res) => {
         )
 
         const sessionResult = await dbRun(
-            `INSERT INTO parking_sessions (user_id, lot_id, spot_id, duration_hours, duration_minutes, total_minutes, fee_amount, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
-            [userId, lotId, spotId, durationHours, durationMinutes, totalMinutes, feeAmount, createdAt],
+            `INSERT INTO parking_sessions (user_id, lot_id, spot_id, vehicle_id, duration_hours, duration_minutes, total_minutes, fee_amount, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+            [userId, lotId, spotId, resolvedVehicleId, durationHours, durationMinutes, totalMinutes, feeAmount, createdAt],
         )
 
         await dbRun(`UPDATE spots SET status = 'taken' WHERE id = ?`, [spotId])
