@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SessionDurationModal from './SessionDurationModal'
+import SessionDurationModal, { type Vehicle } from './SessionDurationModal'
 
 const API_BASE_URL = 'http://localhost:3000'
 
@@ -15,30 +15,12 @@ interface Spot {
   ev: number
 }
 
-interface BookedInfo {
-  lotName: string
-  spotLabel: string
-  feeAmount: number
-  isEv: boolean
-}
-
-interface PaymentPayload {
-  paymentMethodId?: number
-  newCard?: {
-    cardNumber: string
-    expiryMonth: number
-    expiryYear: number
-    cardholderName: string
-  }
-}
-
 interface SpotDetailsPanelProps {
   spot: Spot
   lotName: string
   lotId: number
   userId: number | null
   onBack: (booked?: boolean) => void
-  onBooked?: (info: BookedInfo) => void
 }
 
 const statusConfig: Record<SpotStatus, { label: string; bg: string; border: string; text: string; dot: string }> = {
@@ -58,7 +40,7 @@ const statusConfig: Record<SpotStatus, { label: string; bg: string; border: stri
   },
 }
 
-function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: SpotDetailsPanelProps) {
+function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack }: SpotDetailsPanelProps) {
   const status = statusConfig[spot.status]
 
   const [showModal, setShowModal] = useState(false)
@@ -68,13 +50,27 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
   const [confirmedFee, setConfirmedFee] = useState<number>(0)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
 
   const totalMinutes = hours * 60 + minutes
 
-  function openModal() {
+  async function openModal() {
     setHours(0)
     setMinutes(0)
     setBookingError(null)
+    setSelectedVehicleId(null)
+    if (userId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/vehicles?userId=${userId}`)
+        if (res.ok) {
+          const data: Vehicle[] = await res.json()
+          setVehicles(data)
+        }
+      } catch {
+        // non-critical — proceed without vehicles
+      }
+    }
     setShowModal(true)
   }
 
@@ -83,17 +79,12 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
     setBookingError(null)
   }
 
-  async function handleConfirm(payload: PaymentPayload) {
+  async function handleConfirm() {
     if (totalMinutes <= 0) return
-    if (!userId) {
-      setBookingError('You must be logged in to complete payment.')
-      return
-    }
-
     setIsSubmitting(true)
     setBookingError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/payments`, {
+      const response = await fetch(`${API_BASE_URL}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,17 +93,16 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
           spotId: spot.id,
           hours,
           minutes,
-          ...payload,
+          vehicleId: selectedVehicleId,
         }),
       })
       const body = await response.json()
       if (!response.ok) {
-        setBookingError(body.error || 'Unable to complete payment.')
+        setBookingError(body.error || 'Unable to book spot.')
       } else {
         setConfirmedFee(body.feeAmount)
         setShowModal(false)
         setBookingConfirmed(true)
-        onBooked?.({ lotName, spotLabel: spot.label, feeAmount: body.feeAmount, isEv: spot.ev === 1 })
       }
     } catch {
       setBookingError('Unable to reach the server. Please try again.')
@@ -159,7 +149,6 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
         <SessionDurationModal
           spot={spot}
           lotName={lotName}
-          userId={userId}
           hours={hours}
           minutes={minutes}
           onHoursChange={setHours}
@@ -168,6 +157,11 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
           onCancel={closeModal}
           isSubmitting={isSubmitting}
           error={bookingError}
+          vehicles={vehicles}
+          selectedVehicleId={selectedVehicleId}
+          onVehicleSelect={setSelectedVehicleId}
+          userId={userId}
+          onVehicleAdded={(v) => setVehicles((prev) => [v, ...prev])}
         />
       )}
 
@@ -175,7 +169,7 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
         <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
           <button
             type="button"
-            onClick={() => onBack()}
+            onClick={onBack}
             className="mb-5 flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
