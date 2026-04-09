@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 import { db, initDb } from './db.js'
 
 await initDb()
@@ -81,7 +82,7 @@ const isExpiredCard = (month, year) => {
     return expiryDate <= now
 }
 
-const createPaymentToken = () => `pm_${crypto.randomBytes(12).toString('hex')}`
+const createPaymentToken = () => `pm_${randomBytes(12).toString('hex')}`
 
 app.get('/payment-methods', async (req, res) => {
     try {

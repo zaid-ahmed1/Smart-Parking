@@ -95,8 +95,8 @@ function SessionDurationModal({
 
   const hasValidNewCard =
     cardholderName.trim().length > 0 &&
-    cardNumber.trim().length >= 12 &&
-    expiryMonth.trim().length > 0 &&
+    cardNumber.replace(/\D/g, '').length >= 12 &&
+    Number(expiryMonth) >= 1 && Number(expiryMonth) <= 12 &&
     (expiryYear.trim().length === 4 || expiryYear.trim().length === 2)
 
   const canProceed =
@@ -365,7 +365,8 @@ function SessionDurationModal({
                   </label>
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">Card number</span>
-                    <input type="text" inputMode="numeric" value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="1234 5678 9012 3456" autoComplete="cc-number" />
+                    <input type="text" inputMode="numeric" value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="4111 1111 1111 1111" autoComplete="cc-number" />
+                    <p className="mt-1 text-xs text-slate-400">Test card: 4111 1111 1111 1111</p>
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">

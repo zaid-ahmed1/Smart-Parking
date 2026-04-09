@@ -264,11 +264,7 @@ export async function initDb() {
     ]
 
     const existingLots = await dbAll('SELECT name FROM lots')
-    const existingNames = new Set(existingLots.map((row) => row.name))
-
-    // Delete all existing lots to start fresh
-    await dbRun('DELETE FROM spots')
-    await dbRun('DELETE FROM lots')
+    if (existingLots.length > 0) return
 
     const generateSpots = (lotId, rows, cols, evCount, accessibleCount) => {
         const spots = []
