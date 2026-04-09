@@ -127,6 +127,34 @@ export async function initDb() {
       )`
     )
 
+    await dbRun(
+        `CREATE TABLE IF NOT EXISTS payment_methods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        card_brand TEXT NOT NULL,
+        last4 TEXT NOT NULL,
+        expiry_month INTEGER NOT NULL,
+        expiry_year INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )`
+    )
+
+    await dbRun(
+        `CREATE TABLE IF NOT EXISTS payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        payment_method_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        status TEXT NOT NULL,
+        failure_reason TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
+      )`
+    )
+
     await ensureColumn('lots', 'latitude', 'REAL')
     await ensureColumn('lots', 'longitude', 'REAL')
     await ensureColumn('spots', 'ev', 'INTEGER NOT NULL DEFAULT 0')
@@ -236,11 +264,7 @@ export async function initDb() {
     ]
 
     const existingLots = await dbAll('SELECT name FROM lots')
-    const existingNames = new Set(existingLots.map((row) => row.name))
-
-    // Delete all existing lots to start fresh
-    await dbRun('DELETE FROM spots')
-    await dbRun('DELETE FROM lots')
+    if (existingLots.length > 0) return
 
     const generateSpots = (lotId, rows, cols, evCount, accessibleCount) => {
         const spots = []
