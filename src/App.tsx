@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react'
 import './App.css'
 import LotMap from './LotMap'
+import VehicleManager from './VehicleManager'
 import { useNotifications, type AppNotification, type NotificationType } from './useNotifications'
 
 const API_BASE_URL = 'http://localhost:3000'
@@ -324,6 +325,8 @@ function App() {
                     Review your session details and securely sign out when you are finished.
                   </p>
                 </div>
+
+                {userId !== null && <VehicleManager userId={userId} />}
 
                 <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
                   <div className="space-y-4">

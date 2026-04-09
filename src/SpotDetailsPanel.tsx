@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SessionDurationModal from './SessionDurationModal'
+import SessionDurationModal, { type Vehicle } from './SessionDurationModal'
 
 const API_BASE_URL = 'http://localhost:3000'
 
@@ -58,14 +58,28 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
   const [confirmedFee, setConfirmedFee] = useState<number>(0)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
 
   const totalMinutes = hours * 60 + minutes
   const fee = (totalMinutes / 60) * 2.5
 
-  function openModal() {
+  async function openModal() {
     setHours(0)
     setMinutes(0)
     setBookingError(null)
+    setSelectedVehicleId(null)
+    if (userId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/vehicles?userId=${userId}`)
+        if (res.ok) {
+          const data: Vehicle[] = await res.json()
+          setVehicles(data)
+        }
+      } catch {
+        // non-critical — proceed without vehicles
+      }
+    }
     setShowModal(true)
   }
 
@@ -88,6 +102,7 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
           spotId: spot.id,
           hours,
           minutes,
+          vehicleId: selectedVehicleId,
         }),
       })
       const body = await response.json()
@@ -152,6 +167,11 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
           onCancel={closeModal}
           isSubmitting={isSubmitting}
           error={bookingError}
+          vehicles={vehicles}
+          selectedVehicleId={selectedVehicleId}
+          onVehicleSelect={setSelectedVehicleId}
+          userId={userId}
+          onVehicleAdded={(v) => setVehicles((prev) => [v, ...prev])}
         />
       )}
 
