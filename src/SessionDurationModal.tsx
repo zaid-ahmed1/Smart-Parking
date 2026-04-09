@@ -236,7 +236,9 @@ function SessionDurationModal({
             {/* Vehicle selector */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Vehicle <span className="normal-case tracking-normal text-slate-300">(optional)</span></p>
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
+                  Vehicle <span className="normal-case tracking-normal text-slate-300">(optional)</span>
+                </p>
                 {!showAddVehicle && (
                   <button
                     type="button"
@@ -250,15 +252,7 @@ function SessionDurationModal({
 
               {showAddVehicle ? (
                 <form onSubmit={handleSaveVehicle} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                  <input
-                    type="text"
-                    name="licensePlate"
-                    value={vehicleForm.licensePlate}
-                    onChange={handleVehicleFormChange}
-                    placeholder="License plate *"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
-                  />
+                  <input type="text" name="licensePlate" value={vehicleForm.licensePlate} onChange={handleVehicleFormChange} placeholder="License plate *" required className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none" />
                   <div className="grid grid-cols-2 gap-2">
                     <input type="text" name="make" value={vehicleForm.make} onChange={handleVehicleFormChange} placeholder="Make" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none" />
                     <input type="text" name="model" value={vehicleForm.model} onChange={handleVehicleFormChange} placeholder="Model" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none" />
@@ -367,51 +361,20 @@ function SessionDurationModal({
                 <div className="space-y-3">
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">Cardholder name</span>
-                    <input
-                      type="text"
-                      value={cardholderName}
-                      onChange={(e) => setCardholderName(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                      placeholder="Name on card"
-                      autoComplete="cc-name"
-                    />
+                    <input type="text" value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="Name on card" autoComplete="cc-name" />
                   </label>
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">Card number</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                      placeholder="1234 5678 9012 3456"
-                      autoComplete="cc-number"
-                    />
+                    <input type="text" inputMode="numeric" value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="1234 5678 9012 3456" autoComplete="cc-number" />
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
                       <span className="text-sm font-medium text-slate-700">Expiry month</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={expiryMonth}
-                        onChange={(e) => setExpiryMonth(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                        placeholder="MM"
-                        autoComplete="cc-exp-month"
-                      />
+                      <input type="text" inputMode="numeric" value={expiryMonth} onChange={(e) => setExpiryMonth(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="MM" autoComplete="cc-exp-month" />
                     </label>
                     <label className="block">
                       <span className="text-sm font-medium text-slate-700">Expiry year</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={expiryYear}
-                        onChange={(e) => setExpiryYear(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
-                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                        placeholder="YY or YYYY"
-                        autoComplete="cc-exp-year"
-                      />
+                      <input type="text" inputMode="numeric" value={expiryYear} onChange={(e) => setExpiryYear(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20" placeholder="YY or YYYY" autoComplete="cc-exp-year" />
                     </label>
                   </div>
                   <p className="text-xs text-slate-400">We never store full card numbers or CVV data. All saved cards remain tokenized and masked.</p>

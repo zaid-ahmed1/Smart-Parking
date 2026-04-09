@@ -1,7 +1,6 @@
 import express from 'express'
 import cors from 'cors'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 import { db, initDb } from './db.js'
 
 await initDb()
@@ -135,7 +134,7 @@ app.get('/payments', async (req, res) => {
 
 app.post('/payments', async (req, res) => {
     try {
-        const { userId, lotId, spotId, hours, minutes, vehicleId, paymentMethodId, newCard } = req.body
+        const { userId, lotId, spotId, hours, minutes, paymentMethodId, newCard } = req.body
 
         if (!userId || !lotId || !spotId) {
             return res.status(400).json({ error: 'userId, lotId, and spotId are required.' })
@@ -163,14 +162,6 @@ app.post('/payments', async (req, res) => {
         }
         if (spot.status === 'taken') {
             return res.status(409).json({ error: 'This spot has already been taken.' })
-        }
-
-        const resolvedVehicleId = vehicleId ? Number(vehicleId) : null
-        if (resolvedVehicleId) {
-            const vehicle = await dbGet('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [resolvedVehicleId, userId])
-            if (!vehicle) {
-                return res.status(400).json({ error: 'Selected vehicle not found.' })
-            }
         }
 
         let selectedPaymentMethodId = paymentMethodId
@@ -248,9 +239,9 @@ app.post('/payments', async (req, res) => {
         )
 
         const sessionResult = await dbRun(
-            `INSERT INTO parking_sessions (user_id, lot_id, spot_id, vehicle_id, duration_hours, duration_minutes, total_minutes, fee_amount, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
-            [userId, lotId, spotId, resolvedVehicleId, durationHours, durationMinutes, totalMinutes, feeAmount, createdAt],
+            `INSERT INTO parking_sessions (user_id, lot_id, spot_id, duration_hours, duration_minutes, total_minutes, fee_amount, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+            [userId, lotId, spotId, durationHours, durationMinutes, totalMinutes, feeAmount, createdAt],
         )
 
         await dbRun(`UPDATE spots SET status = 'taken' WHERE id = ?`, [spotId])
@@ -358,6 +349,68 @@ app.get('/lots/:id', async (req, res) => {
     } catch (error) {
         console.error('Error fetching lot details:', error)
         return res.status(500).json({ error: 'Unable to load lot details.' })
+    }
+})
+
+app.get('/vehicles', async (req, res) => {
+    try {
+        const userId = Number(req.query.userId)
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required.' })
+        }
+        const vehicles = await dbAll(
+            'SELECT id, license_plate, make, model, nickname, created_at FROM vehicles WHERE user_id = ? ORDER BY created_at DESC',
+            [userId]
+        )
+        return res.json(vehicles)
+    } catch (error) {
+        console.error('Error fetching vehicles:', error)
+        return res.status(500).json({ error: 'Unable to load vehicles.' })
+    }
+})
+
+app.post('/vehicles', async (req, res) => {
+    try {
+        const { userId, licensePlate, make, model, nickname } = req.body
+        if (!userId || !licensePlate) {
+            return res.status(400).json({ error: 'userId and licensePlate are required.' })
+        }
+        const createdAt = new Date().toISOString()
+        const result = await dbRun(
+            `INSERT INTO vehicles (user_id, license_plate, make, model, nickname, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+            [userId, licensePlate.trim().toUpperCase(), make || null, model || null, nickname || null, createdAt]
+        )
+        return res.status(201).json({
+            id: result.lastID,
+            user_id: userId,
+            license_plate: licensePlate.trim().toUpperCase(),
+            make: make || null,
+            model: model || null,
+            nickname: nickname || null,
+            created_at: createdAt,
+        })
+    } catch (error) {
+        console.error('Error saving vehicle:', error)
+        return res.status(500).json({ error: 'Unable to save vehicle.' })
+    }
+})
+
+app.delete('/vehicles/:id', async (req, res) => {
+    try {
+        const vehicleId = Number(req.params.id)
+        const { userId } = req.body
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required.' })
+        }
+        const vehicle = await dbGet('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, userId])
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found.' })
+        }
+        await dbRun('DELETE FROM vehicles WHERE id = ?', [vehicleId])
+        return res.json({ message: 'Vehicle removed.' })
+    } catch (error) {
+        console.error('Error deleting vehicle:', error)
+        return res.status(500).json({ error: 'Unable to remove vehicle.' })
     }
 })
 

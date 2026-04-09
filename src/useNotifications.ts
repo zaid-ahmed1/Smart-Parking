@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 export type NotificationType = 'payment' | 'expiry' | 'ev_disconnect'
 
@@ -13,41 +13,9 @@ export interface AppNotification {
 
 let nextId = 0
 
-const STORAGE_KEY = 'smart_parking_notifications'
-
-const loadNotificationsFromStorage = (): AppNotification[] => {
-  if (typeof window === 'undefined') return []
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return []
-    const parsed = JSON.parse(stored)
-    return parsed.map((n: any) => ({
-      ...n,
-      timestamp: new Date(n.timestamp),
-    }))
-  } catch {
-    return []
-  }
-}
-
-const saveNotificationsToStorage = (notifications: AppNotification[]) => {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications))
-  } catch {
-    // ignore storage errors
-  }
-}
-
 export function useNotifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [toasts, setToasts] = useState<AppNotification[]>([])
-
-  // Load notifications from localStorage on mount
-  useEffect(() => {
-    const stored = loadNotificationsFromStorage()
-    setNotifications(stored)
-  }, [])
 
   const notify = useCallback((type: NotificationType, title: string, body: string) => {
     const notification: AppNotification = {
@@ -58,11 +26,7 @@ export function useNotifications() {
       timestamp: new Date(),
       read: false,
     }
-    setNotifications((prev) => {
-      const updated = [notification, ...prev]
-      saveNotificationsToStorage(updated)
-      return updated
-    })
+    setNotifications((prev) => [notification, ...prev])
     setToasts((prev) => [...prev, notification])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== notification.id))
@@ -74,24 +38,15 @@ export function useNotifications() {
   }, [])
 
   const markAllRead = useCallback(() => {
-    setNotifications((prev) => {
-      const updated = prev.map((n) => ({ ...n, read: true }))
-      saveNotificationsToStorage(updated)
-      return updated
-    })
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
   }, [])
 
   const clearOne = useCallback((id: number) => {
-    setNotifications((prev) => {
-      const updated = prev.filter((n) => n.id !== id)
-      saveNotificationsToStorage(updated)
-      return updated
-    })
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
   }, [])
 
   const clearAll = useCallback(() => {
     setNotifications([])
-    saveNotificationsToStorage([])
   }, [])
 
   const requestPermission = useCallback(async () => {

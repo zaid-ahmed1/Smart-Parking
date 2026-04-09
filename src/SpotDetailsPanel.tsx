@@ -61,6 +61,8 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
 
+  const totalMinutes = hours * 60 + minutes
+
   async function openModal() {
     setHours(0)
     setMinutes(0)
@@ -83,7 +85,6 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
   }
 
   async function handleConfirm(payload: PaymentPayload) {
-    const totalMinutes = hours * 60 + minutes
     if (totalMinutes <= 0) return
     if (!userId) {
       setBookingError('You must be logged in to complete payment.')
