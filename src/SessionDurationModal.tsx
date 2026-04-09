@@ -3,6 +3,7 @@ import { useState, type FormEvent, type ChangeEvent } from 'react'
 const RATE_PER_HOUR = 2.5
 const API_BASE_URL = 'http://localhost:3000'
 const emptyVehicleForm = { licensePlate: '', make: '', model: '', nickname: '' }
+const emptyPaymentForm = { cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '' }
 
 interface Spot {
   id: number
@@ -24,7 +25,7 @@ interface SessionDurationModalProps {
   minutes: number
   onHoursChange: (h: number) => void
   onMinutesChange: (m: number) => void
-  onConfirm: () => void
+  onConfirm: (paymentToken: string) => void
   onCancel: () => void
   isSubmitting: boolean
   error: string | null
@@ -60,6 +61,10 @@ function SessionDurationModal({
   const [vehicleForm, setVehicleForm] = useState(emptyVehicleForm)
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [vehicleFormError, setVehicleFormError] = useState<string | null>(null)
+  const [currentStep, setCurrentStep] = useState<'duration' | 'payment'>('duration')
+  const [paymentForm, setPaymentForm] = useState(emptyPaymentForm)
+  const [processingPayment, setProcessingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   const totalMinutes = hours * 60 + minutes
   const fee = (totalMinutes / 60) * RATE_PER_HOUR
@@ -107,6 +112,57 @@ function SessionDurationModal({
     onMinutesChange(val)
   }
 
+  function handlePaymentFormChange(e: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target
+    setPaymentForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  async function handleProcessPayment() {
+    if (!paymentForm.cardNumber || !paymentForm.expiryMonth || !paymentForm.expiryYear || !paymentForm.cvv) {
+      setPaymentError('All payment fields are required.')
+      return
+    }
+
+    setProcessingPayment(true)
+    setPaymentError(null)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardNumber: paymentForm.cardNumber,
+          expiryMonth: paymentForm.expiryMonth,
+          expiryYear: paymentForm.expiryYear,
+          cvv: paymentForm.cvv,
+          amount: fee,
+        }),
+      })
+
+      const body = await response.json()
+      if (!response.ok) {
+        setPaymentError(body.error || 'Payment failed.')
+      } else {
+        setCurrentStep('duration')
+        onConfirm(body.transactionId)
+      }
+    } catch {
+      setPaymentError('Unable to process payment. Please try again.')
+    } finally {
+      setProcessingPayment(false)
+    }
+  }
+
+  function handleProceedToPayment() {
+    setCurrentStep('payment')
+    setPaymentError(null)
+  }
+
+  function handleBackToDuration() {
+    setCurrentStep('duration')
+    setPaymentError(null)
+  }
+
   return (
     <div
       role="dialog"
@@ -119,209 +175,312 @@ function SessionDurationModal({
         <div className="px-6 pt-6 pb-4 border-b border-slate-100">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-400">{lotName}</p>
           <h2 id="duration-modal-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-            Book Spot {spot.label}
+            {currentStep === 'duration' ? `Book Spot ${spot.label}` : 'Payment Details'}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">Set your parking duration to calculate the fee.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {currentStep === 'duration'
+              ? 'Set your parking duration to calculate the fee.'
+              : 'Enter your payment information to complete booking.'
+            }
+          </p>
         </div>
 
         <div className="px-6 py-5 space-y-5">
-          {/* Duration inputs */}
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-400 mb-3">Duration</p>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">Hours</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={hours}
-                    onChange={handleHoursChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">hr</span>
-                </div>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">Minutes</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={minutes}
-                    onChange={handleMinutesChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">min</span>
-                </div>
-              </label>
-            </div>
-
-            {!canProceed && (
-              <p className="mt-2 text-xs text-amber-600 font-medium">
-                Please set a duration to continue.
-              </p>
-            )}
-          </div>
-
-          {/* Vehicle selector */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Vehicle</p>
-              {!showAddVehicle && (
-                <button
-                  type="button"
-                  onClick={() => { setShowAddVehicle(true); setVehicleFormError(null) }}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
-                >
-                  + Add new
-                </button>
-              )}
-            </div>
-
-            {showAddVehicle ? (
-              <form onSubmit={handleSaveVehicle} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                <input
-                  type="text"
-                  name="licensePlate"
-                  value={vehicleForm.licensePlate}
-                  onChange={handleVehicleFormChange}
-                  placeholder="License plate *"
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    name="make"
-                    value={vehicleForm.make}
-                    onChange={handleVehicleFormChange}
-                    placeholder="Make"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    name="model"
-                    value={vehicleForm.model}
-                    onChange={handleVehicleFormChange}
-                    placeholder="Model"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
-                  />
-                </div>
-                <input
-                  type="text"
-                  name="nickname"
-                  value={vehicleForm.nickname}
-                  onChange={handleVehicleFormChange}
-                  placeholder="Nickname (optional)"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
-                />
-                {vehicleFormError && <p className="text-xs text-rose-600">{vehicleFormError}</p>}
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => { setShowAddVehicle(false); setVehicleForm(emptyVehicleForm); setVehicleFormError(null) }}
-                    className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingVehicle || !vehicleForm.licensePlate.trim()}
-                    className="flex-1 rounded-full bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {savingVehicle ? 'Saving…' : 'Save & select'}
-                  </button>
-                </div>
-              </form>
-            ) : vehicles.length === 0 ? (
-              <p className="text-xs text-slate-400">No saved vehicles — add one above to link it to this session.</p>
-            ) : (
-              <div className="space-y-2">
-                {vehicles.map((v) => {
-                  const label = v.nickname || [v.make, v.model].filter(Boolean).join(' ') || v.license_plate
-                  const isSelected = selectedVehicleId === v.id
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => onVehicleSelect(isSelected ? null : v.id)}
-                      className={`w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
-                        isSelected
-                          ? 'border-slate-900 bg-slate-950 text-white'
-                          : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${isSelected ? 'bg-white/10' : 'bg-slate-200'}`}>
-                        🚗
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{label}</p>
-                        <p className={`text-xs truncate ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>{v.license_plate}</p>
-                      </div>
-                      {isSelected && (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="ml-auto h-5 w-5 shrink-0 text-white">
-                          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  )
-                })}
-                {!selectedVehicleId && (
-                  <p className="text-xs text-slate-400">No vehicle selected — tap one to link it to this session.</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Fee display */}
-          <div className={`rounded-[24px] border p-4 transition-colors ${canProceed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
-            <div className="flex items-center justify-between">
+          {currentStep === 'duration' ? (
+            <>
+              {/* Duration inputs */}
               <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Estimated fee</p>
-                <p className={`mt-1 text-3xl font-bold tracking-tight transition-colors ${canProceed ? 'text-emerald-900' : 'text-slate-400'}`}>
-                  {canProceed ? formatFee(fee) : '—'}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-400">Rate</p>
-                <p className="text-sm font-semibold text-slate-600">{formatFee(RATE_PER_HOUR)}/hr</p>
-                {canProceed && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    {hours > 0 && `${hours}h `}{minutes > 0 && `${minutes}m`}
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400 mb-3">Duration</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700 mb-1 block">Hours</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={hours}
+                        onChange={handleHoursChange}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">hr</span>
+                    </div>
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700 mb-1 block">Minutes</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={minutes}
+                        onChange={handleMinutesChange}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">min</span>
+                    </div>
+                  </label>
+                </div>
+
+                {!canProceed && (
+                  <p className="mt-2 text-xs text-amber-600 font-medium">
+                    Please set a duration to continue.
                   </p>
                 )}
               </div>
+
+              {/* Vehicle selector */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Vehicle</p>
+                  {!showAddVehicle && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddVehicle(true); setVehicleFormError(null) }}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                    >
+                      + Add new
+                    </button>
+                  )}
+                </div>
+
+                {showAddVehicle ? (
+                  <form onSubmit={handleSaveVehicle} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                    <input
+                      type="text"
+                      name="licensePlate"
+                      value={vehicleForm.licensePlate}
+                      onChange={handleVehicleFormChange}
+                      placeholder="License plate *"
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        name="make"
+                        value={vehicleForm.make}
+                        onChange={handleVehicleFormChange}
+                        placeholder="Make"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        name="model"
+                        value={vehicleForm.model}
+                        onChange={handleVehicleFormChange}
+                        placeholder="Model"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      name="nickname"
+                      value={vehicleForm.nickname}
+                      onChange={handleVehicleFormChange}
+                      placeholder="Nickname (optional)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none"
+                    />
+                    {vehicleFormError && <p className="text-xs text-rose-600">{vehicleFormError}</p>}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => { setShowAddVehicle(false); setVehicleForm(emptyVehicleForm); setVehicleFormError(null) }}
+                        className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingVehicle || !vehicleForm.licensePlate.trim()}
+                        className="flex-1 rounded-full bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {savingVehicle ? 'Saving…' : 'Save & select'}
+                      </button>
+                    </div>
+                  </form>
+                ) : vehicles.length === 0 ? (
+                  <p className="text-xs text-slate-400">No saved vehicles — add one above to link it to this session.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {vehicles.map((v) => {
+                      const label = v.nickname || [v.make, v.model].filter(Boolean).join(' ') || v.license_plate
+                      const isSelected = selectedVehicleId === v.id
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => onVehicleSelect(isSelected ? null : v.id)}
+                          className={`w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${isSelected
+                            ? 'border-slate-900 bg-slate-950 text-white'
+                            : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-slate-100'
+                            }`}
+                        >
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${isSelected ? 'bg-white/10' : 'bg-slate-200'}`}>
+                            🚗
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{label}</p>
+                            <p className={`text-xs truncate ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>{v.license_plate}</p>
+                          </div>
+                          {isSelected && (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="ml-auto h-5 w-5 shrink-0 text-white">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                      )
+                    })}
+                    {!selectedVehicleId && (
+                      <p className="text-xs text-slate-400">No vehicle selected — tap one to link it to this session.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Fee display */}
+              <div className={`rounded-[24px] border p-4 transition-colors ${canProceed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Estimated fee</p>
+                    <p className={`mt-1 text-3xl font-bold tracking-tight transition-colors ${canProceed ? 'text-emerald-900' : 'text-slate-400'}`}>
+                      {canProceed ? formatFee(fee) : '—'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Rate</p>
+                    <p className="text-sm font-semibold text-slate-600">{formatFee(RATE_PER_HOUR)}/hr</p>
+                    {canProceed && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {hours > 0 && `${hours}h `}{minutes > 0 && `${minutes}m`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Payment form */
+            <div className="space-y-4">
+              <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Total to pay</p>
+                    <p className="mt-1 text-3xl font-bold tracking-tight text-emerald-900">
+                      {formatFee(fee)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Duration</p>
+                    <p className="text-sm font-semibold text-slate-600">
+                      {hours > 0 && `${hours}h `}{minutes > 0 && `${minutes}m`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400 mb-3">Card details</p>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    value={paymentForm.cardNumber}
+                    onChange={handlePaymentFormChange}
+                    placeholder="Card number"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-950 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                  />
+                  <div className="grid grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      name="expiryMonth"
+                      value={paymentForm.expiryMonth}
+                      onChange={handlePaymentFormChange}
+                      placeholder="MM"
+                      maxLength={2}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-slate-950 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                    />
+                    <input
+                      type="text"
+                      name="expiryYear"
+                      value={paymentForm.expiryYear}
+                      onChange={handlePaymentFormChange}
+                      placeholder="YY"
+                      maxLength={2}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-slate-950 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                    />
+                    <input
+                      type="text"
+                      name="cvv"
+                      value={paymentForm.cvv}
+                      onChange={handlePaymentFormChange}
+                      placeholder="CVV"
+                      maxLength={4}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-slate-950 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                    />
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Use card number <strong>4000000000000002</strong> to test payment failure
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
               {error}
             </div>
           )}
+
+          {paymentError && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              {paymentError}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex gap-3 px-6 pb-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={!canProceed || isSubmitting}
-            className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Booking…' : 'Confirm booking'}
-          </button>
+          {currentStep === 'duration' ? (
+            <>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedToPayment}
+                disabled={!canProceed || isSubmitting}
+                className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Proceed to payment
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleBackToDuration}
+                disabled={processingPayment}
+                className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleProcessPayment}
+                disabled={processingPayment}
+                className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {processingPayment ? 'Processing…' : `Pay ${formatFee(fee)}`}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -227,12 +227,44 @@ app.get('/sessions/active', async (req, res) => {
 
 const RATE_PER_HOUR = 2.50
 
+// Dummy credit card that always fails
+const FAILING_CARD = '4000000000000002'
+
+app.post('/payments', async (req, res) => {
+    try {
+        const { cardNumber, expiryMonth, expiryYear, cvv, amount } = req.body
+
+        if (!cardNumber || !expiryMonth || !expiryYear || !cvv || !amount) {
+            return res.status(400).json({ error: 'All payment fields are required.' })
+        }
+
+        // Simulate payment processing
+        if (cardNumber.replace(/\s/g, '') === FAILING_CARD) {
+            return res.status(402).json({ error: 'Payment failed. Please check your card details or try a different payment method.' })
+        }
+
+        // For demo purposes, all other cards succeed
+        return res.status(200).json({
+            success: true,
+            transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            amount: parseFloat(amount)
+        })
+    } catch (error) {
+        console.error('Payment processing error:', error)
+        return res.status(500).json({ error: 'Payment processing failed.' })
+    }
+})
+
 app.post('/sessions', async (req, res) => {
     try {
-        const { userId, lotId, spotId, hours, minutes, vehicleId } = req.body
+        const { userId, lotId, spotId, hours, minutes, vehicleId, paymentToken } = req.body
 
         if (!userId || !lotId || !spotId) {
             return res.status(400).json({ error: 'userId, lotId, and spotId are required.' })
+        }
+
+        if (!paymentToken) {
+            return res.status(400).json({ error: 'Payment is required to book a parking session.' })
         }
 
         const durationHours = Math.max(0, Math.floor(Number(hours) || 0))
@@ -282,6 +314,7 @@ app.post('/sessions', async (req, res) => {
             feeAmount,
             status: 'active',
             createdAt,
+            paymentToken,
         })
     } catch (error) {
         console.error('Error creating session:', error)
