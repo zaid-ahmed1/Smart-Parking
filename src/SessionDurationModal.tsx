@@ -134,233 +134,247 @@ function SessionDurationModal({
       <div className="w-full max-w-lg rounded-[32px] border border-slate-200 bg-white shadow-2xl overflow-hidden">
         <div className="max-h-[85vh] overflow-y-auto touch-pan-y">
           <div className="px-6 pt-6 pb-4 border-b border-slate-100">
-          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">{lotName}</p>
-          <h2 id="duration-modal-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-            Book Spot {spot.label}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">Set your parking duration and complete a secure payment to confirm.</p>
-        </div>
+            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">{lotName}</p>
+            <h2 id="duration-modal-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+              Book Spot {spot.label}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">Set your parking duration and complete a secure payment to confirm.</p>
+          </div>
 
-        <div className="px-6 py-5 space-y-5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-400 mb-3">Duration</p>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">Hours</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={hours}
-                    onChange={handleHoursChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">hr</span>
+          <div className="px-6 py-5 space-y-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400 mb-3">Duration</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700 mb-1 block">Hours</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={hours}
+                      onChange={handleHoursChange}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">hr</span>
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700 mb-1 block">Minutes</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={minutes}
+                      onChange={handleMinutesChange}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">min</span>
+                  </div>
+                </label>
+              </div>
+
+              {!totalMinutes && (
+                <p className="mt-2 text-xs text-amber-600 font-medium">Please set a duration to continue.</p>
+              )}
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">Start by selecting your parking duration at the top, then choose or enter a card below.</p>
+            </div>
+
+            <div className={`rounded-[24px] border p-4 transition-colors ${totalMinutes ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Estimated fee</p>
+                  <p className={`mt-1 text-3xl font-bold tracking-tight ${totalMinutes ? 'text-emerald-900' : 'text-slate-400'}`}>
+                    {totalMinutes ? formatFee(fee) : '—'}
+                  </p>
                 </div>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">Minutes</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={minutes}
-                    onChange={handleMinutesChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-bold text-slate-950 text-center focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">min</span>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400">Rate</p>
+                  <p className="text-sm font-semibold text-slate-600">{formatFee(RATE_PER_HOUR)}/hr</p>
                 </div>
-              </label>
-            </div>
-
-            {!totalMinutes && (
-              <p className="mt-2 text-xs text-amber-600 font-medium">Please set a duration to continue.</p>
-            )}
-          </div>
-
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm text-slate-600">Start by selecting your parking duration at the top, then choose or enter a card below.</p>
-          </div>
-
-          <div className={`rounded-[24px] border p-4 transition-colors ${totalMinutes ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Estimated fee</p>
-                <p className={`mt-1 text-3xl font-bold tracking-tight ${totalMinutes ? 'text-emerald-900' : 'text-slate-400'}`}>
-                  {totalMinutes ? formatFee(fee) : '—'}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-400">Rate</p>
-                <p className="text-sm font-semibold text-slate-600">{formatFee(RATE_PER_HOUR)}/hr</p>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Payment method</p>
-                <p className="mt-1 text-sm text-slate-600">Select a saved card or enter a new card.</p>
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Payment method</p>
+                  <p className="mt-1 text-sm text-slate-600">Select a saved card or enter a new card.</p>
+                </div>
+                <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Tokenized</span>
               </div>
-              <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Tokenized</span>
-            </div>
 
-            {savedMethods.length > 0 ? (
-              <div className="mt-4 space-y-3">
-                {savedMethods.map((method) => (
-                  <label key={method.id} className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3">
+              {savedMethods.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {savedMethods.map((method) => (
+                    <label key={method.id} className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3">
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        checked={!useNewCard && selectedMethodId === method.id}
+                        onChange={() => {
+                          setUseNewCard(false)
+                          setSelectedMethodId(method.id)
+                        }}
+                        className="h-4 w-4 text-slate-900"
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{method.cardBrand} •••• {method.last4}</p>
+                        <p className="text-xs text-slate-500">Expires {String(method.expiryMonth).padStart(2, '0')}/{String(method.expiryYear).slice(-2)}</p>
+                      </div>
+                    </label>
+                  ))}
+                  <label className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3">
                     <input
                       type="radio"
                       name="payment-method"
-                      checked={!useNewCard && selectedMethodId === method.id}
+                      checked={useNewCard}
                       onChange={() => {
-                        setUseNewCard(false)
-                        setSelectedMethodId(method.id)
+                        setUseNewCard(true)
+                        setSelectedMethodId(null)
                       }}
                       className="h-4 w-4 text-slate-900"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{method.cardBrand} •••• {method.last4}</p>
-                      <p className="text-xs text-slate-500">Expires {String(method.expiryMonth).padStart(2, '0')}/{String(method.expiryYear).slice(-2)}</p>
+                      <p className="text-sm font-semibold text-slate-900">Use a new card</p>
+                      <p className="text-xs text-slate-500">Card details are stored tokenized and masked.</p>
                     </div>
                   </label>
-                ))}
-                <label className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3">
-                  <input
-                    type="radio"
-                    name="payment-method"
-                    checked={useNewCard}
-                    onChange={() => {
-                      setUseNewCard(true)
-                      setSelectedMethodId(null)
-                    }}
-                    className="h-4 w-4 text-slate-900"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">Use a new card</p>
-                    <p className="text-xs text-slate-500">Card details are stored tokenized and masked.</p>
-                  </div>
-                </label>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
-                No saved cards found. Enter a new card to complete checkout.
-              </div>
-            )}
-
-            {(useNewCard || savedMethods.length === 0) && (
-              <div className="mt-4 space-y-4">
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Cardholder name</span>
-                  <input
-                    type="text"
-                    value={cardholderName}
-                    onChange={(event) => setCardholderName(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                    placeholder="Name on card"
-                    autoComplete="cc-name"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Card number</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={cardNumber}
-                    onChange={(event) => setCardNumber(event.target.value.replace(/[^0-9 ]/g, ''))}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                    placeholder="1234 5678 9012 3456"
-                    autoComplete="cc-number"
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-sm font-medium text-slate-700">Expiry month</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={expiryMonth}
-                      onChange={(event) => setExpiryMonth(event.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                      placeholder="MM"
-                      autoComplete="cc-exp-month"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-medium text-slate-700">Expiry year</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={expiryYear}
-                      onChange={(event) => setExpiryYear(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
-                      placeholder="YY or YYYY"
-                      autoComplete="cc-exp-year"
-                    />
-                  </label>
                 </div>
-                <p className="text-xs text-slate-500">We never store full card numbers or CVV data. All saved cards remain tokenized and masked for security.</p>
+              ) : (
+                <div className="mt-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
+                  No saved cards found. Enter a new card to complete checkout.
+                </div>
+              )}
+
+              {(useNewCard || savedMethods.length === 0) && (
+                <div className="mt-4 space-y-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700">Cardholder name</span>
+                    <input
+                      type="text"
+                      value={cardholderName}
+                      onChange={(event) => setCardholderName(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                      placeholder="Name on card"
+                      autoComplete="cc-name"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700">Card number</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={cardNumber}
+                      onChange={(event) => setCardNumber(event.target.value.replace(/[^0-9 ]/g, ''))}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                      placeholder="1234 5678 9012 3456"
+                      autoComplete="cc-number"
+                    />
+                    <p className="mt-2 text-xs text-slate-500">
+                      Test failed payment with card: <span className="font-mono font-semibold">4000000000000000</span>
+                    </p>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">Expiry month</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={expiryMonth}
+                        onChange={(event) => setExpiryMonth(event.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                        placeholder="MM"
+                        autoComplete="cc-exp-month"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">Expiry year</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={expiryYear}
+                        onChange={(event) => setExpiryYear(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                        placeholder="YY or YYYY"
+                        autoComplete="cc-exp-year"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500">We never store full card numbers or CVV data. All saved cards remain tokenized and masked for security.</p>
+                </div>
+              )}
+
+              {!userId && (
+                <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Please sign in to access saved payment methods.
+                </p>
+              )}
+
+              {!canProceed && totalMinutes > 0 && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  {useNewCard
+                    ? 'Enter full card details or choose a saved card to enable payment confirmation.'
+                    : 'Select a saved card to enable payment confirmation.'}
+                </div>
+              )}
+            </div>
+
+            {(!canProceed && totalMinutes > 0) && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {useNewCard
+                  ? 'Please finish entering the cardholder name, card number, and expiry date.'
+                  : 'Please select a saved payment method before confirming.'}
               </div>
             )}
-
-            {!userId && (
-              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Please sign in to access saved payment methods.
-              </p>
+            {(!canProceed && totalMinutes === 0) && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Set a parking duration to enable payment confirmation.
+              </div>
             )}
-
-            {!canProceed && totalMinutes > 0 && (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                {useNewCard
-                  ? 'Enter full card details or choose a saved card to enable payment confirmation.'
-                  : 'Select a saved card to enable payment confirmation.'}
+            {error && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 space-y-3">
+                <div className="flex gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-rose-600 flex-shrink-0 mt-0.5">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-9-3a1 1 0 11-2 0 1 1 0 012 0zm-1 4a1 1 0 100 2v4a1 1 0 100-2V11z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-rose-900">Payment failed</p>
+                    <p className="mt-1 text-sm text-rose-800">{error}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-rose-700 pl-7">
+                  You can try again with a different payment method or contact your bank for more information.
+                </p>
               </div>
             )}
           </div>
 
-          {(!canProceed && totalMinutes > 0) && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {useNewCard
-                ? 'Please finish entering the cardholder name, card number, and expiry date.'
-                : 'Please select a saved payment method before confirming.'}
-            </div>
-          )}
-          {(!canProceed && totalMinutes === 0) && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Set a parking duration to enable payment confirmation.
-            </div>
-          )}
-          {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 px-6 pb-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirmClick}
-            disabled={!canProceed || isSubmitting || !totalMinutes}
-            className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Processing payment…' : 'Confirm payment'}
-          </button>
+          <div className="flex gap-3 px-6 pb-6">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmClick}
+              disabled={!canProceed || isSubmitting || !totalMinutes}
+              className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Processing payment…' : error ? 'Retry payment' : 'Confirm payment'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   )
 }
 

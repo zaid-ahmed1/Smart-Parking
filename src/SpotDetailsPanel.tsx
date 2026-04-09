@@ -107,8 +107,10 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
       })
       const body = await response.json()
       if (!response.ok) {
+        // Payment failed - keep modal open and show error
         setBookingError(body.error || 'Unable to complete payment.')
       } else {
+        // Payment succeeded - close modal and show confirmation
         setConfirmedFee(body.feeAmount)
         setShowModal(false)
         setBookingConfirmed(true)

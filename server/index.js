@@ -219,7 +219,7 @@ app.post('/payments', async (req, res) => {
             return res.status(402).json({ error: 'Selected card has expired.' })
         }
 
-        // Simulated authorization check. If the card fingerprint indicates an invalid test method, decline.
+        // Simulated authorization check. Test payment failure with cards ending in 0000 (e.g., WRONG_CARD: 4000000000000000)
         if (paymentMethod.last4 === '0000') {
             const failureReason = 'Payment declined by issuer.'
             await dbRun(
