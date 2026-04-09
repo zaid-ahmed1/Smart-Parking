@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react'
 import './App.css'
 import LotMap from './LotMap'
-import VehicleManager from './VehicleManager'
 import { useNotifications, type AppNotification, type NotificationType } from './useNotifications'
 
 const API_BASE_URL = 'http://localhost:3000'
@@ -70,6 +69,7 @@ function App() {
   const [authenticated, setAuthenticated] = useState(false)
   const [userId, setUserId] = useState<number | null>(null)
   const [view, setView] = useState<AuthView>('parking')
+  const [payments, setPayments] = useState<any[]>([])
 
   const { notifications, toasts, notify, markAllRead, clearOne, clearAll, unreadCount, requestPermission } = useNotifications()
   // Tracks which (sessionId, threshold) pairs have already fired, e.g. "42-5", "42-expired"
@@ -129,6 +129,16 @@ function App() {
     const interval = setInterval(checkSessions, 30000)
     return () => clearInterval(interval)
   }, [authenticated, userId, notify])
+
+  // Fetch payment history when profile view is selected
+  useEffect(() => {
+    if (view === 'profile' && userId) {
+      fetch(`${API_BASE_URL}/payments?userId=${userId}`)
+        .then(res => res.json())
+        .then(setPayments)
+        .catch(() => setPayments([]))
+    }
+  }, [view, userId])
 
   function handleBooked({ lotName, spotLabel, feeAmount, isEv }: { lotName: string; spotLabel: string; feeAmount: number; isEv: boolean }) {
     const feeStr = feeAmount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })
@@ -224,9 +234,9 @@ function App() {
 
   return (
     <main className="min-h-screen bg-[#eff8ff] px-4 py-10 text-slate-950">
-      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-[960px] flex-col">
         {authenticated ? (
-          <section className="space-y-6 pb-24">
+          <section className="space-y-6 pb-32">
             {/* Toast notifications — fixed top of screen */}
             {toasts.length > 0 && (
               <div className="fixed top-4 left-3 right-3 z-[999] mx-auto max-w-md space-y-2 pointer-events-none">
@@ -326,8 +336,6 @@ function App() {
                   </p>
                 </div>
 
-                {userId !== null && <VehicleManager userId={userId} />}
-
                 <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-slate-950">Current session</h2>
@@ -345,6 +353,46 @@ function App() {
                     >
                       Sign out
                     </button>
+                  </div>
+                </div>
+
+                <div className="rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-950">Payment history</h2>
+                    {payments.length === 0 ? (
+                      <p className="text-sm text-slate-600">No payment history available.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {payments.map((payment) => (
+                          <div key={payment.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {payment.cardBrand} ****{payment.last4}
+                                </p>
+                                <p className="mt-1 text-slate-600">
+                                  {payment.lotName ? `Spot ${payment.spotId} at ${payment.lotName}` : 'Parking session'}
+                                </p>
+                                <p className="mt-1 text-slate-500">
+                                  {payment.hours}h {payment.minutes}m • {new Date(payment.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className={`font-medium ${payment.status === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {payment.status === 'success' ? 'Paid' : 'Failed'}
+                                </p>
+                                <p className="text-slate-900 font-semibold">
+                                  ${payment.amount.toFixed(2)}
+                                </p>
+                                {payment.failureReason && (
+                                  <p className="mt-1 text-xs text-rose-500">{payment.failureReason}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
