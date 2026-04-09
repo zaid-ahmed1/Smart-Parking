@@ -22,6 +22,16 @@ interface BookedInfo {
   isEv: boolean
 }
 
+interface PaymentPayload {
+  paymentMethodId?: number
+  newCard?: {
+    cardNumber: string
+    expiryMonth: number
+    expiryYear: number
+    cardholderName: string
+  }
+}
+
 interface SpotDetailsPanelProps {
   spot: Spot
   lotName: string
@@ -60,7 +70,6 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
   const [confirmedFee, setConfirmedFee] = useState<number>(0)
 
   const totalMinutes = hours * 60 + minutes
-  const fee = (totalMinutes / 60) * 2.5
 
   function openModal() {
     setHours(0)
@@ -74,12 +83,17 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
     setBookingError(null)
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(payload: PaymentPayload) {
     if (totalMinutes <= 0) return
+    if (!userId) {
+      setBookingError('You must be logged in to complete payment.')
+      return
+    }
+
     setIsSubmitting(true)
     setBookingError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/sessions`, {
+      const response = await fetch(`${API_BASE_URL}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,11 +102,12 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
           spotId: spot.id,
           hours,
           minutes,
+          ...payload,
         }),
       })
       const body = await response.json()
       if (!response.ok) {
-        setBookingError(body.error || 'Unable to book spot.')
+        setBookingError(body.error || 'Unable to complete payment.')
       } else {
         setConfirmedFee(body.feeAmount)
         setShowModal(false)
@@ -144,6 +159,7 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
         <SessionDurationModal
           spot={spot}
           lotName={lotName}
+          userId={userId}
           hours={hours}
           minutes={minutes}
           onHoursChange={setHours}
@@ -159,7 +175,7 @@ function SpotDetailsPanel({ spot, lotName, lotId, userId, onBack, onBooked }: Sp
         <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
           <button
             type="button"
-            onClick={onBack}
+            onClick={() => onBack()}
             className="mb-5 flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
