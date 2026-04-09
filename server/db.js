@@ -95,11 +95,25 @@ export async function initDb() {
     }
 
     await dbRun(
+        `CREATE TABLE IF NOT EXISTS vehicles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        license_plate TEXT NOT NULL,
+        make TEXT,
+        model TEXT,
+        nickname TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )`
+    )
+
+    await dbRun(
         `CREATE TABLE IF NOT EXISTS parking_sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         lot_id INTEGER NOT NULL,
         spot_id INTEGER NOT NULL,
+        vehicle_id INTEGER,
         duration_hours INTEGER NOT NULL DEFAULT 0,
         duration_minutes INTEGER NOT NULL DEFAULT 0,
         total_minutes INTEGER NOT NULL,
@@ -108,41 +122,15 @@ export async function initDb() {
         created_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (lot_id) REFERENCES lots(id),
-        FOREIGN KEY (spot_id) REFERENCES spots(id)
-      )`
-    )
-
-    await dbRun(
-        `CREATE TABLE IF NOT EXISTS payment_methods (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        token TEXT UNIQUE NOT NULL,
-        card_brand TEXT NOT NULL,
-        last4 TEXT NOT NULL,
-        expiry_month INTEGER NOT NULL,
-        expiry_year INTEGER NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )`
-    )
-
-    await dbRun(
-        `CREATE TABLE IF NOT EXISTS payments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        payment_method_id INTEGER NOT NULL,
-        amount REAL NOT NULL,
-        status TEXT NOT NULL,
-        failure_reason TEXT,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
+        FOREIGN KEY (spot_id) REFERENCES spots(id),
+        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
       )`
     )
 
     await ensureColumn('lots', 'latitude', 'REAL')
     await ensureColumn('lots', 'longitude', 'REAL')
     await ensureColumn('spots', 'ev', 'INTEGER NOT NULL DEFAULT 0')
+    await ensureColumn('parking_sessions', 'vehicle_id', 'INTEGER REFERENCES vehicles(id)')
 
     const parkingLots = [
         {
